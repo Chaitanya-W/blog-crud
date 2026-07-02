@@ -1,19 +1,64 @@
 <?php
 
+session_start();
+
+if(!isset($_SESSION['user']))
+{
+    header("Location: login.php");
+    exit();
+}
+
 include 'config.php';
+include 'security.php';
 
 if(isset($_POST['submit']))
 {
-    $title=$_POST['title'];
-    $content=$_POST['content'];
+    $title = cleanInput($_POST['title']);
+    $content = cleanInput($_POST['content']);
+    $user_id = $_SESSION['user_id'];
 
-    $query="INSERT INTO posts(title,content)
-            VALUES('$title','$content')";
+    if(empty($title) || empty($content))
+    {
+        echo "<script>alert('All fields are required.');</script>";
+    }
+    elseif(strlen($title) < 3)
+    {
+        echo "<script>alert('Title must contain at least 3 characters.');</script>";
+    }
+    elseif(strlen($content) < 10)
+    {
+        echo "<script>alert('Content must contain at least 10 characters.');</script>";
+    }
+    else
+    {
+        $stmt = $conn->prepare(
+            "INSERT INTO posts(title,content,user_id)
+             VALUES(?,?,?)"
+        );
 
-    mysqli_query($conn,$query);
+        $stmt->bind_param(
+            "ssi",
+            $title,
+            $content,
+            $user_id
+        );
 
-    header("Location:index.php");
+        if($stmt->execute())
+        {
+            echo "<script>
+            alert('Post Created Successfully');
+            window.location='index.php';
+            </script>";
+        }
+        else
+        {
+            echo "<script>alert('Something went wrong');</script>";
+        }
+
+        $stmt->close();
+    }
 }
+
 ?>
 
 <!DOCTYPE html>
@@ -22,14 +67,19 @@ if(isset($_POST['submit']))
 <head>
 
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0">
 
 <title>Create Post</title>
 
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
-      rel="stylesheet">
+<link
+href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+rel="stylesheet">
 
-<link rel="stylesheet" href="css/style.css">
+<link
+rel="stylesheet"
+href="css/style.css">
 
 </head>
 
@@ -43,61 +93,72 @@ if(isset($_POST['submit']))
 
 <div class="auth-card">
 
-<div class="text-center mb-4">
+<h2 class="mb-4">
 
-<h2>Create New Post ✍️</h2>
+Create New Post ✍️
 
-<p class="text-muted">
-Write something amazing today
+</h2>
+
+<p class="text-muted text-center mb-4">
+
+Share your thoughts with everyone.
+
 </p>
-
-</div>
 
 <form method="POST">
 
 <div class="mb-3">
 
 <label class="form-label">
+
 Title
+
 </label>
 
 <input
 type="text"
 name="title"
 class="form-control"
-placeholder="Enter post title..."
-required>
+placeholder="Enter post title"
+required
+maxlength="255"
+minlength="3">
 
 </div>
 
 <div class="mb-4">
 
 <label class="form-label">
+
 Content
+
 </label>
 
 <textarea
 name="content"
 rows="8"
 class="form-control"
-placeholder="Write your content here..."
-required></textarea>
+placeholder="Write something amazing..."
+required
+minlength="10"></textarea>
 
 </div>
 
 <button
+type="submit"
 name="submit"
-class="btn btn-primary w-100">
+class="btn btn-success w-100">
 
-💾 Save Post
+Publish Post 🚀
 
 </button>
 
 </form>
 
-<div class="text-center mt-3">
+<div class="text-center mt-4">
 
-<a href="index.php"
+<a
+href="index.php"
 class="btn btn-outline-secondary">
 
 ← Back to Posts
@@ -115,4 +176,5 @@ class="btn btn-outline-secondary">
 </div>
 
 </body>
+
 </html>
